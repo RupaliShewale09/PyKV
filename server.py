@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from A_Core.store import CoreStore  
+from C_Persistence.persistence import Persistence
 
 # -------------------- Models --------------------
 class KeyValue(BaseModel):
@@ -13,7 +14,8 @@ class ValueOnly(BaseModel):
 # ----------------- FastAPI Setup -------------------
 app = FastAPI(title="PyKV ")
 
-store = CoreStore(capacity=100)
+core = CoreStore(capacity=100) 
+store = Persistence(core)
 
 # ----------------- Routes -------------------
 @app.post("/kv/")
