@@ -59,7 +59,7 @@ async def delete(key: str):        # Delete key
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Key not found"
         )
-    return {"message": "Key deleted"}
+    return 
 
 
 @app.get("/kv/", status_code=status.HTTP_200_OK)       
