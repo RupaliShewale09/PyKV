@@ -2,7 +2,7 @@ import threading
 import time
 from .compaction import compact_log
 
-def start_background_compaction(log_file, lock, interval=120):
+def start_background_compaction(log_file, lock, interval=10):
     """
     Periodically compact WAL in background
     """
@@ -11,5 +11,5 @@ def start_background_compaction(log_file, lock, interval=120):
             time.sleep(interval)
             compact_log(log_file, lock)
 
-    t = threading.Thread(target=run, daemon=True)
+    t = threading.Thread(target=run, name="WAL-Compaction-Thread", daemon=True)
     t.start()

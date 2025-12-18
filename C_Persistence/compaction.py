@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 
 
 def compact_log(log_file, lock):
@@ -14,26 +15,33 @@ def compact_log(log_file, lock):
     with lock:
         with open(log_file, "r") as f:
             for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+
                 entry = json.loads(line)
-                key = entry["key"]
-                op = entry["op"]
+                key = entry.get("key")
+                op = entry.get("op")
 
                 if op == "DELETE":
                     latest[key] = None
                 else:  # SET or UPDATE
-                    latest[key] = entry["value"]
+                    latest[key] = entry.get("value")
 
-        with open(log_file, "w") as f:
+        dir_name = os.path.dirname(log_file) or "."
+        with tempfile.NamedTemporaryFile("w", delete=False, dir=dir_name) as tmp:
             for key, value in latest.items():
                 if value is None:
-                    f.write(json.dumps({
+                    tmp.write(json.dumps({
                         "op": "DELETE",
                         "key": key
                     }) + "\n")
                 else:
-                    f.write(json.dumps({
+                    tmp.write(json.dumps({
                         "op": "SET",
                         "key": key,
                         "value": value
                     }) + "\n")
+            temp_name = tmp.name
 
+        os.replace(temp_name, log_file)

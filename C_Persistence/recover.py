@@ -11,9 +11,13 @@ def recover(store, log_file):
 
     with open(log_file, "r") as f:
         for line in f:
+            line = line.strip()
+            if not line:
+                continue
+
             entry = json.loads(line)
-            op = entry["op"]
-            key = entry["key"]
+            op = entry.get("op")
+            key = entry.get("key")
             value = entry.get("value")
 
             if op == "SET":
