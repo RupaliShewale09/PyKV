@@ -8,10 +8,18 @@ class LRUCache:
         self.dll = DoublyLinkedList()   # maintain usage order
         self.lock = Lock()      # thread safety             
 
+        #Metrics
+        self.evictions = 0
+        self.hits = 0
+        self.misses = 0        
+
     def get(self, key):     
         with self.lock:
             if key not in self.map:         # key not found -> None
+                self.misses += 1
                 return None
+            
+            self.hits +=1
             node = self.map[key]            
             self.dll.move_to_tail(node)       # move to MRU
             return node.value
@@ -27,7 +35,9 @@ class LRUCache:
 
             if len(self.map) > self.capacity:          # if capacity exceed
                 lru = self.dll.remove_head()        # remove LRU
-                del self.map[lru.key]
+                if lru:
+                    del self.map[lru.key]
+                    self.evictions += 1
             return True
 
     def update(self, key, value):
