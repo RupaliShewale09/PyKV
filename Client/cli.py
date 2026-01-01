@@ -39,7 +39,9 @@ while True:
         case "4":
             key = input("Key: ")
             res = requests.delete(f"{BASE}/kv/{key}")
-            print(res.json())
+            if res.status_code == 204:
+                print({"message": "Key deleted"})
+
 
         case "5":
             prefix = input("Prefix (press Enter to skip): ")
