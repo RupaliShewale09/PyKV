@@ -24,4 +24,9 @@ class CoreStore:
             return [k for k in keys if k.startswith(prefix)]
         return keys
 
+    def dump_all(self):
+        data = {}
+        for key in self.cache.map:
+            data[key] = self.cache.map[key].value
+        return data
 
