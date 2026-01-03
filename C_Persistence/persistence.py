@@ -26,12 +26,13 @@ class Persistence:
         )
 
 
-    def _append_log(self, op, key, value=None):     # Log entry in JSON form
+    def _append_log(self, op, key, value=None, ttl=None):     # Log entry in JSON form
         entry = {
             "time": datetime.utcnow().isoformat(),
             "op": op,
             "key": key,
-            "value": value
+            "value": value,
+            "ttl" : ttl
         }
 
         with self.lock:
@@ -42,23 +43,17 @@ class Persistence:
 
 
     # Write operations-------------------------------------------
-    def put(self, key, value):
-        ok = self.store.put(key, value)
-        if ok:
-            self._append_log("SET", key, value)
-        return ok
+    def put(self, key, value, ttl=None):
+        self._append_log("SET", key, value, ttl)
+        return self.store.put(key, value, ttl)
 
-    def update(self, key, value):
-        ok = self.store.update(key, value)
-        if ok:
-            self._append_log("UPDATE", key, value)
-        return ok
+    def update(self, key, value, ttl=None):
+        self._append_log("UPDATE", key, value, ttl)
+        return self.store.update(key, value, ttl)
 
     def delete(self, key):
-        ok = self.store.delete(key)
-        if ok:
-            self._append_log("DELETE", key)
-        return ok
+        self._append_log("DELETE", key)
+        return self.store.delete(key)
 
     # read operations ----------------------------------------------
     def get(self, key):             # read only - do not modify data

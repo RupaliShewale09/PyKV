@@ -26,12 +26,15 @@ def compact_log(log_file, lock):
                 if op == "DELETE":
                     latest[key] = None
                 else:  # SET or UPDATE
-                    latest[key] = entry.get("value")
+                    latest[key] = {
+                        "value" : entry.get("value"),
+                        "ttl" : entry.get("ttl")
+                    }
 
         dir_name = os.path.dirname(log_file) or "."
         with tempfile.NamedTemporaryFile("w", delete=False, dir=dir_name) as tmp:
-            for key, value in latest.items():
-                if value is None:
+            for key, data in latest.items():
+                if data is None:
                     tmp.write(json.dumps({
                         "op": "DELETE",
                         "key": key
@@ -40,8 +43,23 @@ def compact_log(log_file, lock):
                     tmp.write(json.dumps({
                         "op": "SET",
                         "key": key,
-                        "value": value
+                        "value": data["value"],
+                        "ttl" : data["ttl"]
                     }) + "\n")
             temp_name = tmp.name
 
-        os.replace(temp_name, log_file)
+        # Handle Windows permission errors
+        try:
+            os.replace(temp_name, log_file)
+        except PermissionError:
+            # On Windows, if replace fails, try remove and rename
+            try:
+                os.remove(log_file)
+                os.rename(temp_name, log_file)
+            except Exception:
+                # If still fails, clean up temp file
+                try:
+                    os.remove(temp_name)
+                except Exception:
+                    pass
+                raise

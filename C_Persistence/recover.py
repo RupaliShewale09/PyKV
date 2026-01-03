@@ -19,10 +19,11 @@ def recover(store, log_file):
             op = entry.get("op")
             key = entry.get("key")
             value = entry.get("value")
+            ttl = entry.get("ttl")
 
             if op == "SET":
-                store.put(key, value)
+                store.put(key, value, ttl)
             elif op == "UPDATE":
-                store.update(key, value)
+                store.update(key, value, ttl)
             elif op == "DELETE":
                 store.delete(key)

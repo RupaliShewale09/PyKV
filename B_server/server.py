@@ -2,9 +2,7 @@ from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import threading
-import asyncio
 import uvicorn
-import time
 
 import sys
 import os
@@ -19,9 +17,11 @@ from D_Replication.health import health_monitor
 class KeyValue(BaseModel):
     key: str
     value: str
+    ttl : int | None = None
 
 class ValueOnly(BaseModel):
     value: str
+    ttl : int | None = None
 
 class ReplicationRequest(BaseModel):
     op: str
@@ -47,7 +47,7 @@ store = Persistence(core)
 # ----------------- Routes -------------------
 @app.post("/kv/", status_code=status.HTTP_201_CREATED)
 async def add(item: KeyValue):          # client sends key & value
-    if not store.put(item.key, item.value):
+    if not store.put(item.key, item.value, ttl=item.ttl):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Key already exists")
@@ -68,7 +68,7 @@ async def get(key: str):          # lookup key
 
 @app.put("/kv/{key}", status_code=status.HTTP_200_OK)
 async def update(key: str, item: ValueOnly):      # Update value
-    if not store.update(key, item.value):
+    if not store.update(key, item.value, ttl=item.ttl):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Key not found"

@@ -31,8 +31,11 @@ while True:
         case "1":
             key = input("Key: ")
             value = input("Value: ")
+            ttl_input = input("TTL in seconds (optional, press Enter to skip): ")
+            ttl = int(ttl_input) if ttl_input else None
+
             BASE = get_active_base()
-            res = requests.post(f"{BASE}/kv/", json={"key": key, "value": value})
+            res = requests.post(f"{BASE}/kv/", json={"key": key, "value": value, "ttl": ttl})
             print(res.json())
 
         case "2":
@@ -44,8 +47,11 @@ while True:
         case "3":
             key = input("Key: ")
             value = input("New Value: ")
+            ttl_input = input("TTL in seconds (optional, press Enter to skip): ")
+            ttl = int(ttl_input) if ttl_input else None
+
             BASE = get_active_base()
-            res = requests.put(f"{BASE}/kv/{key}", json={"value": value})
+            res = requests.put(f"{BASE}/kv/{key}", json={"value": value, "ttl": ttl})
             print(res.json())
 
         case "4":
