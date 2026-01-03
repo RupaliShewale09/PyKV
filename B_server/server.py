@@ -1,12 +1,19 @@
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
+from contextlib import asynccontextmanager
+import threading
+import asyncio
+import uvicorn
+import time
 
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from A_Core.store import CoreStore  
+from A_Core.store import CoreStore
 from C_Persistence.persistence import Persistence
+from D_Replication.replicator import replicate_async
+from D_Replication.health import health_monitor
 
 # -------------------- Models --------------------
 class KeyValue(BaseModel):
@@ -16,15 +23,26 @@ class KeyValue(BaseModel):
 class ValueOnly(BaseModel):
     value: str
 
+class ReplicationRequest(BaseModel):
+    op: str
+    key: str
+    value: str | None = None
+    timestamp: float | None = None
+
 # ----------------- FastAPI Setup -------------------
-app = FastAPI(title="PyKV ")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    threading.Thread(
+        target=health_monitor,
+        args=(store,),
+        daemon=True
+    ).start()
+    yield
 
-core = CoreStore(capacity=100) 
+app = FastAPI(title="PyKV Server", lifespan=lifespan)
+
+core = CoreStore(capacity=100)
 store = Persistence(core)
-
-@app.on_event("startup")
-def startup_event():
-    pass
 
 # ----------------- Routes -------------------
 @app.post("/kv/", status_code=status.HTTP_201_CREATED)
@@ -33,6 +51,7 @@ async def add(item: KeyValue):          # client sends key & value
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Key already exists")
+    await replicate_async("SET", item.key, item.value)
     return {"message": "Key added"}
 
 
@@ -54,6 +73,7 @@ async def update(key: str, item: ValueOnly):      # Update value
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Key not found"
         )
+    await replicate_async("UPDATE", key, item.value)
     return {"message": "Key updated"}
 
 
@@ -64,6 +84,7 @@ async def delete(key: str):        # Delete key
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Key not found"
         )
+    replicate_async("DELETE", key)
     return 
 
 
@@ -84,7 +105,38 @@ def get_stats():
         "misses": getattr(cache, "misses", 0)
     }
 
-# ----------------- Run -------------------
+
+# ---------- Internal (replica only) ----------
+@app.post("/internal/replicate")
+async def internal_replicate(req: ReplicationRequest):
+    """
+    Receives replicated writes from another server
+    """
+    if req.op == "SET":
+        store.put(req.key, req.value)
+    elif req.op == "UPDATE":
+        store.update(req.key, req.value)
+    elif req.op == "DELETE":
+        store.delete(req.key)
+
+    return {"status": "replicated"}
+
+@app.post("/internal/resync")
+async def internal_resync(data: dict):
+    """
+    Full resync from primary
+    """
+    # Clear existing data
+    for key in list(store.list_keys()):
+        store.delete(key)
+
+    # Rebuild store
+    for key, value in data.items():
+        store.put(key, value)
+
+    return {"status": "resynced"}
+
+# ---------- Run ----------
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="127.0.0.1", port=port)
