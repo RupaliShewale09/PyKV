@@ -1,6 +1,15 @@
 import requests
 
-BASE = "http://127.0.0.1:8000"
+BASES = ["http://127.0.0.1:8000", "http://127.0.0.1:8001"]
+
+def get_active_base():
+    for base in BASES:
+        try:
+            requests.get(f"{base}/stats", timeout=1)
+            return base
+        except:
+            continue
+    raise Exception("No server available")
 
 def menu():
     print("""
@@ -22,22 +31,26 @@ while True:
         case "1":
             key = input("Key: ")
             value = input("Value: ")
+            BASE = get_active_base()
             res = requests.post(f"{BASE}/kv/", json={"key": key, "value": value})
             print(res.json())
 
         case "2":
             key = input("Key: ")
+            BASE = get_active_base()
             res = requests.get(f"{BASE}/kv/{key}")
             print(res.json())
 
         case "3":
             key = input("Key: ")
             value = input("New Value: ")
+            BASE = get_active_base()
             res = requests.put(f"{BASE}/kv/{key}", json={"value": value})
             print(res.json())
 
         case "4":
             key = input("Key: ")
+            BASE = get_active_base()
             res = requests.delete(f"{BASE}/kv/{key}")
             if res.status_code == 204:
                 print({"message": "Key deleted"})
@@ -46,6 +59,7 @@ while True:
         case "5":
             prefix = input("Prefix (press Enter to skip): ")
             params = {"prefix": prefix} if prefix else {}
+            BASE = get_active_base()
             res = requests.get(f"{BASE}/kv/", params=params)
             print(res.json())
 
