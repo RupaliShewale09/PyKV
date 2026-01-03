@@ -6,14 +6,14 @@ class CoreStore:
     def __init__(self, capacity=50):
         self.cache = LRUCache(capacity)
 
-    def put(self, key, value):          # insert key
-        return self.cache.set(key, value)
+    def put(self, key, value, ttl=None):          # insert key
+        return self.cache.set(key, value, ttl)
 
     def get(self, key):                 # fetch key
         return self.cache.get(key)
 
-    def update(self, key, value):       # modify values
-        return self.cache.update(key, value)
+    def update(self, key, value, ttl=None):       # modify values
+        return self.cache.update(key, value, ttl)
 
     def delete(self, key):              # remove key
         return self.cache.delete(key)
@@ -25,8 +25,5 @@ class CoreStore:
         return keys
 
     def dump_all(self):
-        data = {}
-        for key in self.cache.map:
-            data[key] = self.cache.map[key].value
-        return data
+        return self.cache.dump()
 

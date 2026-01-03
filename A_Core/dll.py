@@ -1,9 +1,10 @@
 class Node:
-    __slots__ = ("key", "value", "prev", "next")
+    __slots__ = ("key", "value", "expiry", "prev", "next")
 
-    def __init__(self, key, value):
+    def __init__(self, key, value, expiry=None):
         self.key = key
         self.value = value
+        self.expiry = expiry
         self.prev = None
         self.next = None
 
