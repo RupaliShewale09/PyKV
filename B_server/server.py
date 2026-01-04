@@ -28,6 +28,7 @@ class ReplicationRequest(BaseModel):
     key: str
     value: str | None = None
     timestamp: float | None = None
+    ttl: int | None = None
 
 # ----------------- FastAPI Setup -------------------
 @asynccontextmanager
@@ -84,7 +85,7 @@ async def delete(key: str):        # Delete key
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Key not found"
         )
-    replicate_async("DELETE", key)
+    await replicate_async("DELETE", key)
     return 
 
 
@@ -99,10 +100,10 @@ def get_stats():
 
     return {
         "capacity": cache.capacity,
-        "size": len(cache.map),
-        "evictions": getattr(cache, "evictions", 0),
-        "hits": getattr(cache, "hits", 0),
-        "misses": getattr(cache, "misses", 0)
+        "size": sum(len(shard.map) for shard in cache.shards),
+        "evictions": cache.eviction,
+        "hits": cache.hits,
+        "misses": cache.misses
     }
 
 
@@ -113,9 +114,9 @@ async def internal_replicate(req: ReplicationRequest):
     Receives replicated writes from another server
     """
     if req.op == "SET":
-        store.put(req.key, req.value)
+        store.put(req.key, req.value, req.ttl)
     elif req.op == "UPDATE":
-        store.update(req.key, req.value)
+        store.update(req.key, req.value, req.ttl)
     elif req.op == "DELETE":
         store.delete(req.key)
 
@@ -132,7 +133,7 @@ async def internal_resync(data: dict):
 
     # Rebuild store
     for key, value in data.items():
-        store.put(key, value)
+        store.put(key, value, ttl=None)
 
     return {"status": "resynced"}
 
