@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import threading
 import uvicorn
+import time
 
 import sys
 import os
@@ -42,7 +43,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="PyKV Server", lifespan=lifespan)
 
-core = CoreStore(capacity=100)
+core = CoreStore(capacity=10)
 store = Persistence(core)
 
 # ----------------- Routes -------------------
@@ -52,7 +53,7 @@ async def add(item: KeyValue):          # client sends key & value
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Key already exists")
-    await replicate_async("SET", item.key, item.value)
+    await replicate_async("SET", item.key, item.value, item.ttl)
     return {"message": "Key added"}
 
 
@@ -74,7 +75,7 @@ async def update(key: str, item: ValueOnly):      # Update value
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Key not found"
         )
-    await replicate_async("UPDATE", key, item.value)
+    await replicate_async("UPDATE", key, item.value, item.ttl)
     return {"message": "Key updated"}
 
 
@@ -93,15 +94,21 @@ async def delete(key: str):        # Delete key
 async def list_keys(prefix: str = None):      # List keys
     return {"keys": store.list_keys(prefix)}
 
+@app.get("/kv-items", status_code=status.HTTP_200_OK)
+async def list_key_values():
+    store.store.purge_expired()
+    data = store.dump_all()
+    return {"items": data}
 
 @app.get("/stats", status_code=status.HTTP_200_OK)
 def get_stats():
+    core.purge_expired()
     cache = core.cache
 
     return {
         "capacity": cache.capacity,
         "size": sum(len(shard.map) for shard in cache.shards),
-        "evictions": cache.eviction,
+        "evictions": cache.evictions,
         "hits": cache.hits,
         "misses": cache.misses
     }
@@ -131,9 +138,13 @@ async def internal_resync(data: dict):
     for key in list(store.list_keys()):
         store.delete(key)
 
-    # Rebuild store
-    for key, value in data.items():
-        store.put(key, value, ttl=None)
+    now = time.time()
+    for key, item in data.items():
+        expiry = item["expiry"]
+        ttl = expiry - now if expiry else None
+        if ttl is not None and ttl <= 0:
+            continue
+        store.put(key, item["value"], ttl)
 
     return {"status": "resynced"}
 
