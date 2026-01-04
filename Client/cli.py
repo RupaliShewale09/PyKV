@@ -60,6 +60,8 @@ while True:
             res = requests.delete(f"{BASE}/kv/{key}")
             if res.status_code == 204:
                 print({"message": "Key deleted"})
+            else:
+                print(res.json())
 
 
         case "5":
