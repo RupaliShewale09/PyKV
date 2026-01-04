@@ -24,10 +24,10 @@ def health_monitor(store):
             try:
                 resync(store, url)
             except:
-                pass
+                continue
 
-        _last_healthy = new_healthy
-        _healthy = new_healthy
+        _last_healthy |= new_healthy
+        _healthy = _last_healthy.copy()
 
         time.sleep(HEALTH_CHECK_INTERVAL)
 

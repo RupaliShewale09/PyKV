@@ -2,11 +2,12 @@ import aiohttp, asyncio, time
 from D_Replication.health import get_healthy_replicas
 from D_Replication.config import ENABLE_TIMESTAMPS, MAX_RETRIES
 
-async def replicate_async(op, key, value=None):
+async def replicate_async(op, key, value=None, ttl=None):
     payload = {
         "op": op,
         "key": key,
         "value": value,
+        "ttl" : ttl,
         "timestamp": time.time() if ENABLE_TIMESTAMPS else None
     }
 
