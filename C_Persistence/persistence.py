@@ -3,9 +3,15 @@ import os
 from datetime import datetime
 from threading import Lock, Thread, Event
 import time
+import logging
 
 from .recover import recover
 from .background import start_background_compaction
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] [%(threadName)s] %(message)s"
+)
 
 class Persistence:
     """
@@ -33,7 +39,7 @@ class Persistence:
             lock=self.lock,
             interval=10   
         )
-
+        logging.info("Persistence layer initialized")
 
     # ---------------- WAL enqueue ----------------
     def _enqueue_log(self, op, key, value=None, ttl=None):
@@ -49,11 +55,23 @@ class Persistence:
 
     # ---------------- Background WAL writer ----------------
     def _wal_writer(self):
+        logging.info("WAL writer thread started")
         while not self.stop_event.is_set():
-            time.sleep(self.flush_interval)
-            self._flush_queue()
+            try:
+                self._flush_queue()
+            except Exception as e:
+                # This should NEVER kill the thread
+                logging.critical(
+                    "Unexpected WAL writer error (thread kept alive): %s",
+                    e,
+                    exc_info=True,
+                )
+                time.sleep(1)
 
-        # Flush remaining entries on shutdown
+            time.sleep(self.flush_interval)
+
+        # Final flush during shutdown
+        logging.info("WAL writer flushing remaining entries before shutdown")
         self._flush_queue()
 
     def _flush_queue(self):
@@ -71,7 +89,17 @@ class Persistence:
                 f.flush()
                 os.fsync(f.fileno())
         except Exception as e:
-            raise RuntimeError(f"WAL flush failed: {e}")
+                    logging.error(
+                        "WAL flush failed. Re-queueing batch. Error: %s", e,
+                        exc_info=True
+                    )
+
+                    # Re-queue failed batch at the front (preserve order)
+                    with self.lock:
+                        self.queue = batch + self.queue
+
+                    # Prevent busy spinning on persistent failure
+                    time.sleep(1)
 
     # ---------------- Write operations ----------------
     def put(self, key, value, ttl=None):
@@ -99,6 +127,8 @@ class Persistence:
     # ---------------- Graceful shutdown ----------------
     def shutdown(self):
         """Flush any remaining WAL entries and stop background thread"""
+        logging.info("Shutting down persistence layer")
         self.stop_event.set()
         self.worker.join()
+        logging.info("Persistence layer stopped cleanly")
 
