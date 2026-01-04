@@ -12,22 +12,28 @@ class LRUCache:
         #Metrics
         self.evictions = 0
         self.hits = 0
-        self.misses = 0        
+        self.misses = 0 
+        
+        self._expired_keys = set()   
 
     def _is_expired(self, node):
         return node.expiry is not None and node.expiry <= time.time()
     
     def get(self, key):     
         with self.lock:
-            node = self.map[key]
-            if key not in self.map:         # key not found -> None
-                self.misses += 1
+            node = self.map.get(key)
+            if not node:
+                if key not in self._expired_keys:         # key not found -> None
+                    self.misses += 1
+                    self._expired_keys.add(key)
                 return None
             
             if self._is_expired(node):
                 self.dll.remove_node(node)
                 del self.map[key]
-                self.misses += 1
+                if key not in self._expired_keys:
+                    self.misses += 1
+                    self._expired_keys.add(key)
                 return None
             
             self.hits +=1            
@@ -37,9 +43,15 @@ class LRUCache:
     def set(self, key, value, ttl=None):
         with self.lock:
             if key in self.map:        #If key exists → reject insert 
-                return False
+                node = self.map[key]
+                if self._is_expired(node):
+                    # Key expired → remove and allow new insert
+                    self.dll.remove_node(node)
+                    del self.map[key]
+                else:
+                    return False 
 
-            expiry = time.time() + ttl if ttl else None
+            expiry = time.time() + ttl if ttl is not None else None
             node = Node(key, value, expiry)         
             self.dll.add_to_tail(node)      # else add to MRU
             self.map[key] = node
@@ -57,7 +69,7 @@ class LRUCache:
                 return False
             node = self.map[key]
             node.value = value              # else update value
-            if ttl:
+            if ttl is not None:
                 node.expiry = time.time() + ttl
             self.dll.move_to_tail(node)     # move to MRU
             return True
@@ -73,7 +85,13 @@ class LRUCache:
 
     def list_keys(self):
         with self.lock:
-            return self.dll.list_from_head()
+            keys = []
+            current = self.dll.head
+            while current :
+                if not self._is_expired(current):
+                    keys.append(current.key)
+                current = current.next
+            return keys
     
     def dump(self):
         with self.lock:
