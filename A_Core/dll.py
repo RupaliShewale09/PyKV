@@ -22,21 +22,28 @@ class DoublyLinkedList:
         self.tail = node
 
     def move_to_tail(self, node):   # moves existing node to MRU - get or update
-        if node == self.tail:
+        if node == self.tail or self.head == None:
             return
 
         if node.prev:
             node.prev.next = node.next
         else:
             self.head = node.next
+            if self.head:       
+                self.head.prev = None
 
         if node.next:
             node.next.prev = node.prev
 
         node.prev = self.tail
         node.next = None
-        self.tail.next = node
+        if self.tail:
+            self.tail.next = node
         self.tail = node
+
+        # If list had only one node before
+        if self.head is None:
+            self.head = node
 
     def remove_head(self):   # removes LRU node - when capacity exceed
         if not self.head:
