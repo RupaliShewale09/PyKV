@@ -141,12 +141,20 @@ async def internal_resync(data: dict):
     now = time.time()
     for key, item in data.items():
         expiry = item["expiry"]
-        ttl = expiry - now if expiry else None
-        if ttl is not None and ttl <= 0:
+        if expiry is None:
+            store.put(key, item["value"], None)
+            continue
+        ttl = expiry - now 
+        if ttl <= 0:
             continue
         store.put(key, item["value"], ttl)
 
     return {"status": "resynced"}
+
+@app.get("/replication/health")
+async def replication_health():
+    from D_Replication.health import get_healthy_replicas
+    return {"healthy": get_healthy_replicas()}
 
 # ---------- Run ----------
 if __name__ == "__main__":
