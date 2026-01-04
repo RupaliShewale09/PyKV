@@ -14,7 +14,6 @@ class LRUCache:
         self.hits = 0
         self.misses = 0 
         
-        self._expired_keys = set()   
 
     def _is_expired(self, node):
         return node.expiry is not None and node.expiry <= time.time()
@@ -22,18 +21,14 @@ class LRUCache:
     def get(self, key):     
         with self.lock:
             node = self.map.get(key)
-            if not node:
-                if key not in self._expired_keys:         # key not found -> None
-                    self.misses += 1
-                    self._expired_keys.add(key)
+            if not node:        # key not found -> None
+                self.misses += 1
                 return None
             
             if self._is_expired(node):
                 self.dll.remove_node(node)
                 del self.map[key]
-                if key not in self._expired_keys:
-                    self.misses += 1
-                    self._expired_keys.add(key)
+                self.misses += 1
                 return None
             
             self.hits +=1            
@@ -96,7 +91,14 @@ class LRUCache:
     def dump(self):
         with self.lock:
             data = {}
-            for key, node in self.map.items():
-                if not self._is_expired(node):
-                    data[key] = node.value
+            now = time.time()
+            current = self.dll.head
+            while current:
+                if not self._is_expired(current):
+                    ttl_left = int(current.expiry - now) if current.expiry else None
+                    data[current.key] = {
+                        "value": current.value,
+                        "ttl": ttl_left
+                    }
+                current = current.next
             return data
