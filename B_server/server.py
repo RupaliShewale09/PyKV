@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="PyKV Server", lifespan=lifespan)
 
-core = CoreStore(capacity=10)
+core = CoreStore(capacity=100)
 store = Persistence(core)
 
 # ----------------- Routes -------------------
@@ -140,14 +140,15 @@ async def internal_resync(data: dict):
 
     now = time.time()
     for key, item in data.items():
-        expiry = item["expiry"]
+        value = item["value"]
+        expiry = item.get("expiry")
         if expiry is None:
-            store.put(key, item["value"], None)
+            store.put(key, value, None)
             continue
         ttl = expiry - now 
         if ttl <= 0:
             continue
-        store.put(key, item["value"], ttl)
+        store.put(key, value, ttl)
 
     return {"status": "resynced"}
 
