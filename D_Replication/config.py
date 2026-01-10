@@ -1,5 +1,6 @@
 REPLICA_URLS = [
-    "http://127.0.0.1:8001"
+    "http://127.0.0.1:8001",
+    "http://127.0.0.1:8002"
 ]
 
 HEALTH_CHECK_INTERVAL = 5

@@ -26,7 +26,7 @@ def health_monitor(store):
             except:
                 continue
 
-        _last_healthy |= new_healthy
+        _last_healthy = new_healthy
         _healthy = _last_healthy.copy()
 
         time.sleep(HEALTH_CHECK_INTERVAL)
