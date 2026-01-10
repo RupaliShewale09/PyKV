@@ -1,6 +1,8 @@
 import requests
 
-BASES = ["http://127.0.0.1:8000", "http://127.0.0.1:8001"]
+BASES = ["http://127.0.0.1:8000", 
+         "http://127.0.0.1:8001",
+         "http://127.0.0.1:8002"]
 
 def get_active_base():
     for base in BASES:
