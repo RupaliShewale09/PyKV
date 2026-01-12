@@ -1,5 +1,6 @@
+import time
 class Node:
-    __slots__ = ("key", "value", "expiry", "prev", "next")
+    __slots__ = ("key", "value", "expiry", "prev", "next", "last_accessed")
 
     def __init__(self, key, value, expiry=None):
         self.key = key
@@ -7,6 +8,7 @@ class Node:
         self.expiry = expiry
         self.prev = None
         self.next = None
+        self.last_accessed = time.time()
 
 class DoublyLinkedList:
     def __init__(self):

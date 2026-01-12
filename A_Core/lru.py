@@ -31,7 +31,8 @@ class LRUCache:
                 self.misses += 1
                 return None
             
-            self.hits +=1            
+            self.hits +=1    
+            node.last_accessed = time.time()        
             self.dll.move_to_tail(node)       # move to MRU
             return node.value
 
@@ -64,6 +65,7 @@ class LRUCache:
                 return False
             node = self.map[key]
             node.value = value              # else update value
+            node.last_accessed = time.time() 
             if ttl is not None:
                 node.expiry = time.time() + ttl
             self.dll.move_to_tail(node)     # move to MRU
@@ -98,7 +100,8 @@ class LRUCache:
                     ttl_left = int(current.expiry - now) if current.expiry else None
                     data[current.key] = {
                         "value": current.value,
-                        "ttl": ttl_left
+                        "ttl": ttl_left,
+                        "last_accessed" : current.last_accessed
                     }
                 current = current.next
             return data

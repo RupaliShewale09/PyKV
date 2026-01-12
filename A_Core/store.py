@@ -30,20 +30,22 @@ class CoreStore:
         return self._get_shard(key).delete(key)
 
     def list_keys(self, prefix=None):       #list all keys  LRU -> MRU
-        self.purge_expired()
-        keys = []
-        for shard in self.shards:
-            shard_keys = shard.list_keys()
-            if prefix:
-                shard_keys = [k for k in shard_keys if k.startswith(prefix)]
-            keys.extend(shard_keys)
-        return keys
-
+        all_data = self.dump_all() 
+        if prefix:
+            return [k for k in all_data.keys() if k.startswith(prefix)]
+        return list(all_data.keys())
+    
     def dump_all(self):
-        data = {}
+        all_data = {}
         for shard in self.shards:
-            data.update(shard.dump())
-        return data
+            all_data.update(shard.dump())
+
+        sorted_items = sorted(
+            all_data.items(), 
+            key=lambda x: x[1].get('last_accessed',0)
+        )
+        
+        return {k: v for k, v in sorted_items}
     
     def purge_expired(self):
         for shard in self.shards:
