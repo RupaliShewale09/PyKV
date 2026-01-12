@@ -48,30 +48,28 @@ graph TD
 
 ## 🧩 Module Explanation
 
-### Module 1: Core Data Store
+#### Module 1: Core Data Store
 Uses a combination of a Doubly Linked List (DLL) for maintaining usage order and a HashMap for `O(1)` access.  
 It enforces a strict memory usage policy via LRU eviction and supports TTL for automatic key expiration.
 
----
 
-### Module 2: FastAPI Server Layer
+#### Module 2: FastAPI Server Layer
 Acts as the primary interaction layer, handling HTTP request routing, Pydantic-based input validation, and asynchronous processing to manage concurrent client requests.
 
----
 
-### Module 3: Persistence & Recovery
+#### Module 3: Persistence & Recovery
 Ensures durability by recording every change to an Append-Only Log (WAL).  
 It features an asynchronous writer to prevent disk I/O from blocking requests and a background compaction process to minimize log size.
 
----
 
-### Module 4: Replication
+
+#### Module 4: Replication
 Maintains live copies of data on replica nodes using a Primary-Replica model.  
 It includes a health monitor for node tracking and an auto-resync feature for recovering nodes.
 
----
 
-### Module 5: Client Interface
+
+#### Module 5: Client Interface
 Provides an interactive menu-driven CLI with smart failover and a real-time Streamlit web dashboard for visual monitoring and operations.
 
 ---
