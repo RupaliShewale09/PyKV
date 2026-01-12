@@ -9,6 +9,41 @@ It follows a modular architecture, enabling independent design, testing, and ben
 
 The following diagram illustrates the interaction between the core data store, the persistence layer, and the replication engine.
 
+```mermaid
+graph TD
+    %% Global Nodes
+    Clients["Clients"]
+
+    subgraph Primary ["Primary Instance "]
+        direction TB
+        FAS["FastAPI Server Module<br/>• FastAPI Server"]
+        CDS["Core Data Store Module<br/>(In-Memory Dictionary<br/>& LRU Cache)"]
+        PRM[("Persistence & Recovery Module<br/>(Append-Only Log)")]
+        
+        FAS --> CDS
+        CDS -- "Log Writes &<br/>Startup Recovery" --> PRM
+    end
+
+    subgraph Secondary ["Secondary Instance "]
+        SCDS["Core Data Store<br/>Module<br/>(In-Memory Dictionary<br/>& LRU Cache)"]
+        
+    end
+
+    %% Cross-Instance Connections
+    Clients -- "GET / POST<br/>/ DELETE" --> FAS
+    FAS -- "Internal Data<br/>Access Commands" --> Secondary
+    PRM -- "Replication Stream" --> Secondary
+
+    %% Styling to match the original colors
+    style Primary fill:none,stroke:#b0c4de,stroke-dasharray: 5 5
+    style Secondary fill:#f0f4f8,stroke:#b0c4de,stroke-dasharray: 5 5, color: #000
+    style Clients fill:#d1e3fa,stroke:#4a90e2,stroke-width:2px, color: #000
+    style FAS fill:#fff,stroke:#ccc, color: #000
+    style CDS fill:#fff,stroke:#ccc, color: #000
+    style PRM fill:#fff,stroke:#4a90e2,stroke-width:2px, color: #000
+    style SCDS fill:#fff,stroke:#ccc, color: #000
+
+```
 ---
 
 ## 🧩 Module Explanation
