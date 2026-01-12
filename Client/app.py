@@ -4,39 +4,62 @@ from streamlit_autorefresh import st_autorefresh
 import requests
 import time
 from style import apply_style, draw_metric
+import os
 
 st.set_page_config(page_title="PyKV ", layout="wide")
-BASES = [
-    "http://127.0.0.1:8000", 
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:8002"
-]
 
-apply_style()
+LEADER_PORT = int(os.getenv("LEADER_PORT", 8000))
+REPLICA_COUNT = int(os.getenv("REPLICA_COUNT", 2))
+
+BASES = [f"http://127.0.0.1:{LEADER_PORT}"]
+
+for i in range(REPLICA_COUNT):
+    BASES.append(f"http://127.0.0.1:{LEADER_PORT + i + 1}")
 
 # @st.cache_data(ttl=5)
-def get_active_base():
-    for base in BASES:
+def get_active_base(write=False):
+    for idx, base in enumerate(BASES):
         try:
-            requests.get(f"{base}/stats", timeout=0.5)
-            return base
-        except:
+            response = requests.get(f"{base}/stats", timeout=0.5)
+            if response.status_code == 200:
+                if write and idx != 0:
+                    continue
+                return base, idx == 0
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
             continue
-    st.error("No backend available")
-    return None
+    return None, False
 
 # ---------------- AUTO REFRESH ----------------
 st_autorefresh(interval=2000, limit=None, key="refresh_counter")  # refresh every 2s
 
-BASE = get_active_base()
-if not BASE:
-    st.error("❌ No PyKV server available")
+BASE, is_leader = get_active_base(write=False)
+if BASE is None:
+    st.markdown("""
+        <div style="text-align: center; padding: 50px;">
+            <h1 style="font-size: 100px;">🔌</h1>
+            <h2 style="color: #ef4444;">No PyKV Cluster Detected</h2>
+            <p style="color: #ffffff;">Please start your leader and replica servers to continue.</p>
+        </div>
+    """, unsafe_allow_html=True)
     st.stop()
+
+if not is_leader:
+    st.markdown(f"""
+        <div style="background-color: #fef2f2; color: #991b1b; padding: 15px; border-radius: 10px; 
+                    border: 1px solid #f87171; text-align: center; margin-bottom: 50px; margin-top:-50px; font-weight: bold;">
+            ⚠️ LEADER DOWN: Operating in READ-ONLY mode (Replica: {BASE})
+        </div>
+    """, unsafe_allow_html=True)
+
+apply_style()
 
 # ---------------- SIDEBAR ----------------
 with st.sidebar:
-    # Title matching MediChain's style
     st.markdown('<div class="sidebar-title">✦ PyKV Store</div>', unsafe_allow_html=True)
+    if is_leader:
+        st.markdown('<span style="color: #22c55e; font-weight: bold;">● Leader Active</span>', unsafe_allow_html=True)
+    else:
+        st.markdown('<span style="color: #ef4444; font-weight: bold;">● Replica Mode</span>', unsafe_allow_html=True)
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
 
     selected = option_menu(
@@ -80,10 +103,10 @@ if selected == "Dashboard":
     try:
         stats = requests.get(f"{BASE}/stats", timeout=1).json()
     except Exception:
-        st.warning("Switching to replica...")
+        st.toast("Connection lost! Re-scanning cluster...", icon="🔄")
+        time.sleep(1) # Small delay so user sees the toast
         st.cache_data.clear()
         st.rerun()
-        # stats = {}
     
     hits = 0
     misses = 0
@@ -200,6 +223,8 @@ elif selected == "Key Operations":
         tab1, tab2, tab3, tab4 = st.tabs(["SET", "GET", "UPDATE", "DELETE"])
 
         with tab1:
+            if not is_leader:
+                st.warning("Writes not allowed on replica")
             key = st.text_input("Key", key="final_set_key")
             value = st.text_input("Value", key="final_set_value")
             ttl = st.number_input("TTL (seconds, optional)", min_value=0, step=1, value=0, key="final_set_ttl" )
@@ -236,6 +261,8 @@ elif selected == "Key Operations":
             st.markdown('</div>', unsafe_allow_html=True)
 
         with tab3:
+            if not is_leader:
+                st.warning("Writes not allowed on replica")
             key = st.text_input("Key to Update", key="final_update_key")
             value = st.text_input("New Value", key="final_update_value")
             ttl = st.number_input("TTL (seconds, optional)", min_value=0, step=1, value=0, key="final_update_ttl")
@@ -254,6 +281,8 @@ elif selected == "Key Operations":
             st.markdown('</div>', unsafe_allow_html=True)
 
         with tab4:
+            if not is_leader:
+                st.warning("Writes not allowed on replica")
             key = st.text_input("Key to Delete", key="final_delete_key")
             confirm = st.checkbox("Confirm delete")
 
