@@ -8,6 +8,13 @@ import logging
 from .recover import recover
 from .background import start_background_compaction
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+
+os.makedirs(DATA_DIR, exist_ok=True)
+
+DEFAULT_WAL = os.path.join(DATA_DIR, "wal.log")
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] [%(threadName)s] %(message)s"
@@ -17,7 +24,7 @@ class Persistence:
     """
     Log every write operation
     """
-    def __init__(self, store, log_file=r"D:\Programs\python\PyKV\data\wal.log", flush_interval=1, max_batch=50):
+    def __init__(self, store, log_file=DEFAULT_WAL, flush_interval=1, max_batch=50):
         self.store = store
         self.log_file = log_file
         self.lock = Lock()

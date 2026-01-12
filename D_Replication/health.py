@@ -1,7 +1,7 @@
 import time
 import requests
-from D_Replication.config import REPLICA_URLS, HEALTH_CHECK_INTERVAL
-from D_Replication.resync import resync
+from .config import REPLICA_URLS, HEALTH_CHECK_INTERVAL
+from .resync import resync
 
 _healthy = set()
 _last_healthy = set()

@@ -5,11 +5,6 @@ import time
 import signal
 import argparse
 
-# ---------------- Paths ----------------
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-SERVER_FILE = os.path.join(PROJECT_ROOT, "B_server", "server.py")
-STREAMLIT_FILE = os.path.join(PROJECT_ROOT, "Client", "app.py")
-CLI_FILE = os.path.join(PROJECT_ROOT, "Client", "cli.py")
 
 processes = []
 
@@ -33,11 +28,16 @@ def start_server(role, port, leader_url=None):
         env["LEADER_URL"] = leader_url
 
     print(f"🚀 Starting {role} on port {port}")
-    start_process([sys.executable, SERVER_FILE], env)
+    start_process(
+        [sys.executable, "-m", "PyKV.B_server.server"],
+        env=env
+    )
 
 def start_streamlit():
     print("🎨 Starting Streamlit UI")
-    start_process(["streamlit", "run", STREAMLIT_FILE])
+    start_process(
+        ["streamlit", "run", "PyKV/Client/app.py"]
+    )
 
 
 def start_cli():
@@ -45,7 +45,7 @@ def start_cli():
     env = os.environ.copy()
 
     # Windows: open new cmd window and run CLI (path without extra quotes)
-    cmd = f'start cmd /k python "{CLI_FILE}"'
+    cmd = "start cmd /k python -m PyKV.Client.cli"
     start_process(cmd, env=env, shell=True)
 
 
@@ -56,7 +56,7 @@ def shutdown():
     sys.exit(0)
 
 # ---------------- Main ----------------
-if __name__ == "__main__":
+def main():
     signal.signal(signal.SIGINT, lambda s, f: shutdown())
 
     # ---------------- Args ----------------
@@ -110,3 +110,6 @@ if __name__ == "__main__":
 
     while True:
         time.sleep(1)
+
+if __name__ == "__main__":
+    main()

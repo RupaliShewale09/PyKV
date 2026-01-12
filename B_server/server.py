@@ -7,13 +7,13 @@ import time
 
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from A_Core.store import CoreStore
-from C_Persistence.persistence import Persistence
-from D_Replication.replicator import replicate_async
-from D_Replication.health import health_monitor
-from D_Replication.config import IS_LEADER
+from PyKV.A_Core.store import CoreStore
+from PyKV.C_Persistence.persistence import Persistence
+from PyKV.D_Replication.replicator import replicate_async
+from PyKV.D_Replication.health import health_monitor, get_healthy_replicas
+from PyKV.D_Replication.config import IS_LEADER
 
 # -------------------- Models --------------------
 class KeyValue(BaseModel):
@@ -179,7 +179,6 @@ async def internal_resync(data: dict):
 
 @app.get("/replication/health")
 async def replication_health():
-    from D_Replication.health import get_healthy_replicas
     return {"healthy": get_healthy_replicas()}
 
 # ---------- Run ----------
