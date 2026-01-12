@@ -13,6 +13,7 @@ from A_Core.store import CoreStore
 from C_Persistence.persistence import Persistence
 from D_Replication.replicator import replicate_async
 from D_Replication.health import health_monitor
+from D_Replication.config import IS_LEADER
 
 # -------------------- Models --------------------
 class KeyValue(BaseModel):
@@ -49,6 +50,11 @@ store = Persistence(core)
 # ----------------- Routes -------------------
 @app.post("/kv/", status_code=status.HTTP_201_CREATED)
 async def add(item: KeyValue):          # client sends key & value
+    if not IS_LEADER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Writes not allowed on replica"
+        )
     if not store.put(item.key, item.value, ttl=item.ttl):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -70,6 +76,12 @@ async def get(key: str):          # lookup key
 
 @app.put("/kv/{key}", status_code=status.HTTP_200_OK)
 async def update(key: str, item: ValueOnly):      # Update value
+    if not IS_LEADER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Writes not allowed on replica"
+        )
+    
     if not store.update(key, item.value, ttl=item.ttl):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -81,6 +93,12 @@ async def update(key: str, item: ValueOnly):      # Update value
 
 @app.delete("/kv/{key}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete(key: str):        # Delete key
+    if not IS_LEADER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Writes not allowed on replica"
+        )
+    
     if not store.delete(key):       
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -120,6 +138,11 @@ async def internal_replicate(req: ReplicationRequest):
     """
     Receives replicated writes from another server
     """
+    if IS_LEADER:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Leader cannot accept replication"
+        )
     if req.op == "SET":
         store.put(req.key, req.value, req.ttl)
     elif req.op == "UPDATE":
@@ -134,6 +157,8 @@ async def internal_resync(data: dict):
     """
     Full resync from primary
     """
+    if not IS_LEADER:
+        return
     # Clear existing data
     for key in list(store.list_keys()):
         store.delete(key)
@@ -160,4 +185,6 @@ async def replication_health():
 # ---------- Run ----------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
+    role = "LEADER" if IS_LEADER else "REPLICA"
+    print(f"🚀 Starting PyKV {role} on port {port}")
     uvicorn.run(app, host="127.0.0.1", port=port)
