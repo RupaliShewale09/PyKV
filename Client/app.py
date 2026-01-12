@@ -63,9 +63,9 @@ with st.sidebar:
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
 
     selected = option_menu(
-        menu_title=None, # Required
+        menu_title=None, 
         options=["Dashboard", "Key Operations"],
-        # Match the icons from your 2nd image (grid and key)
+
         icons=["grid-fill", "key-fill"], 
         default_index=0,
         styles={
@@ -89,7 +89,7 @@ with st.sidebar:
                 "font-family": "'Inter', sans-serif"
             },
             "nav-link-selected": {
-                "background-color": "#4383f1", # Brighter blue for selection
+                "background-color": "#4383f1",
                 "font-weight": "600"
             },
         }
@@ -104,7 +104,7 @@ if selected == "Dashboard":
         stats = requests.get(f"{BASE}/stats", timeout=1).json()
     except Exception:
         st.toast("Connection lost! Re-scanning cluster...", icon="🔄")
-        time.sleep(1) # Small delay so user sees the toast
+        time.sleep(1) 
         st.cache_data.clear()
         st.rerun()
     
@@ -129,9 +129,7 @@ if selected == "Dashboard":
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Wrap in a container to manage spacing
     with st.container():
-        # Using a styled caption for better visibility
         st.markdown(f"""
             <div style="margin-bottom: 5px; color: #1e293b; font-weight: 600; font-size: 14px;">
                 Hit Ratio: {hit_ratio}%
@@ -152,7 +150,6 @@ if selected == "Dashboard":
         r = requests.get(f"{BASE}/replication/health", timeout=1)
         if r.status_code == 200:
             replicas = r.json().get("healthy", [])
-        # replicas = r.json().get("healthy", [])
         if replicas:
             for rep in replicas:
                 st.markdown(f"""
