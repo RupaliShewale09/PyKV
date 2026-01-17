@@ -15,6 +15,9 @@ from PyKV.D_Replication.replicator import replicate_async
 from PyKV.D_Replication.health import health_monitor, get_healthy_replicas
 from PyKV.D_Replication.config import IS_LEADER
 
+from PyKV.B_server.auth.auth_routes import router as auth_router
+from PyKV.B_server.auth.auth_db import create_users_table
+
 # -------------------- Models --------------------
 class KeyValue(BaseModel):
     key: str
@@ -35,6 +38,7 @@ class ReplicationRequest(BaseModel):
 # ----------------- FastAPI Setup -------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    create_users_table()
     threading.Thread(
         target=health_monitor,
         args=(store,),
@@ -46,6 +50,8 @@ app = FastAPI(title="PyKV Server", lifespan=lifespan)
 
 core = CoreStore(capacity=100)
 store = Persistence(core)
+
+app.include_router(auth_router)
 
 # ----------------- Routes -------------------
 @app.post("/kv/", status_code=status.HTTP_201_CREATED)

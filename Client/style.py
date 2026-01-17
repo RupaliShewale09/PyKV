@@ -155,6 +155,12 @@ def apply_style():
             font-weight: 600 !important;
             transition: all 0.3s ease-in-out !important;
         }
+        div.stButton > button p {
+            color: #ffffff !important;
+        }
+        div.stButton > button:hover p {
+            color: #000000 !important; /* Changes text to black when background turns white on hover */
+        }
                 
         div.stButton > button:hover {
             background-color: #ffffff !important; 
@@ -166,6 +172,24 @@ def apply_style():
             background-color: #f8fafc !important;
             color: #000000 !important;
             border: 1px solid #eef2f6 !important;
+        }
+
+        .st-key-form {
+            background-color: white !important;
+            padding: 40px !important;
+            border-radius: 15px !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+            border: 1px solid #eef2f6 !important;
+            max-width: 550px;
+            margin: auto;
+        }
+            div[data-testid="stTextInput"] div[data-baseweb="input"] {
+            background-color: white ;
+        }
+        /* Force password visibility toggle icon to dark */
+        div[data-testid="stTextInput"] svg {
+            fill: #64748b !important;   /* Dark gray color for visibility */
+            stroke: #64748b !important; /* Sometimes needed for SVG stroke */
         }
 
     </style>

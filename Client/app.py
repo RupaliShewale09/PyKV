@@ -5,8 +5,22 @@ import requests
 import time
 from style import apply_style, draw_metric
 import os
+from auth_ui import auth_page
 
 st.set_page_config(page_title="PyKV ", layout="wide")
+apply_style()
+
+if "logged_in" not in st.session_state:
+    if "user" in st.query_params:
+        st.session_state["logged_in"] = True
+        st.session_state["username"] = st.query_params["user"]
+    else:
+        st.session_state["logged_in"] = False
+
+if not st.session_state["logged_in"]:
+    auth_page()  # shows login / signup UI
+    st.stop()    # stop rest of dashboard from loading
+
 
 LEADER_PORT = int(os.getenv("LEADER_PORT", 8000))
 REPLICA_COUNT = int(os.getenv("REPLICA_COUNT", 2))
@@ -16,7 +30,6 @@ BASES = [f"http://127.0.0.1:{LEADER_PORT}"]
 for i in range(REPLICA_COUNT):
     BASES.append(f"http://127.0.0.1:{LEADER_PORT + i + 1}")
 
-# @st.cache_data(ttl=5)
 def get_active_base(write=False):
     for idx, base in enumerate(BASES):
         try:
@@ -51,7 +64,6 @@ if not is_leader:
         </div>
     """, unsafe_allow_html=True)
 
-apply_style()
 
 # ---------------- SIDEBAR ----------------
 with st.sidebar:
@@ -95,6 +107,15 @@ with st.sidebar:
         }
     )
 
+    for _ in range(7): 
+        st.write("") 
+
+    st.write("---")
+    if st.button("Logout", key="sidebar_logout_btn", use_container_width=True):
+        st.query_params.clear()
+        st.session_state["logged_in"] = False
+        st.session_state["username"] = ""
+        st.rerun()
 
 # ---------------- DASHBOARD ----------------
 if selected == "Dashboard":
