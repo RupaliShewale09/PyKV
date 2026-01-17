@@ -21,6 +21,8 @@ if not st.session_state["logged_in"]:
     auth_page()  # shows login / signup UI
     st.stop()    # stop rest of dashboard from loading
 
+def get_user_params():
+    return {"username": st.session_state.get("username", "default")}
 
 LEADER_PORT = int(os.getenv("LEADER_PORT", 8000))
 REPLICA_COUNT = int(os.getenv("REPLICA_COUNT", 2))
@@ -122,7 +124,7 @@ if selected == "Dashboard":
     st.markdown("<h1 style='text-align:center;color:#0e7c86;margin-top:-3rem;'>📊 PyKV Dashboard</h1>", unsafe_allow_html=True)
 
     try:
-        stats = requests.get(f"{BASE}/stats", timeout=1).json()
+        stats = requests.get(f"{BASE}/stats", params=get_user_params(), timeout=1).json()
     except Exception:
         st.toast("Connection lost! Re-scanning cluster...", icon="🔄")
         time.sleep(1) 
@@ -198,7 +200,7 @@ if selected == "Dashboard":
     search = st.text_input("Search Key", label_visibility="collapsed", placeholder="Enter key name to search...")
 
     try:
-        r = requests.get(f"{BASE}/kv-items", timeout=2)
+        r = requests.get(f"{BASE}/kv-items", params=get_user_params(), timeout=2)
         data = r.json().get("items", {}) if r.status_code == 200 else {}
         
         if search:
@@ -255,7 +257,7 @@ elif selected == "Key Operations":
                     payload["ttl"] = ttl
 
                 start = time.time()
-                r = requests.post(f"{BASE}/kv/", json=payload)
+                r = requests.post(f"{BASE}/kv/", json=payload, params=get_user_params())
                 latency = round((time.time() - start) * 1000, 2)
                 if r.status_code in (200, 201):
                     st.success(f"Key inserted (Latency: {latency} ms)")
@@ -268,7 +270,7 @@ elif selected == "Key Operations":
             st.markdown('<div class="op-button">', unsafe_allow_html=True)
             if st.button("GET"):
                 start = time.time()
-                r = requests.get(f"{BASE}/kv/{key}")
+                r = requests.get(f"{BASE}/kv/{key}", params=get_user_params(),)
                 latency = round((time.time() - start) * 1000, 2)
 
                 if r.status_code in (200, 201):
@@ -291,7 +293,7 @@ elif selected == "Key Operations":
                 payload = {"value": value}
                 if ttl:
                     payload["ttl"] = ttl
-                r = requests.put(f"{BASE}/kv/{key}", json=payload)
+                r = requests.put(f"{BASE}/kv/{key}", json=payload, params=get_user_params(),)
                 if r.status_code in (200, 201):
                     st.success("Key updated successfully")
                 else:
@@ -309,7 +311,7 @@ elif selected == "Key Operations":
                 if not confirm:
                     st.warning("Please confirm deletion")
                 else:
-                    r = requests.delete(f"{BASE}/kv/{key}")
+                    r = requests.delete(f"{BASE}/kv/{key}", params=get_user_params(),)
                     if r.status_code == 204:
                         st.success("Key deleted successfully")
                     elif r.status_code == 404:

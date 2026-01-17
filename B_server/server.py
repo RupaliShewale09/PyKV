@@ -1,11 +1,11 @@
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Depends
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import threading
 import uvicorn
 import time
 
-import sys
+# import sys
 import os
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -18,6 +18,17 @@ from PyKV.D_Replication.config import IS_LEADER
 from PyKV.B_server.auth.auth_routes import router as auth_router
 from PyKV.B_server.auth.auth_db import create_users_table
 
+user_stores = {}
+
+def get_user_store(username: str):
+    if username not in user_stores:
+        user_core = CoreStore(capacity=100)
+        user_stores[username] = Persistence(user_core, username=username)
+    return user_stores[username]
+
+async def get_current_user(username: str = "default"):
+    return username
+
 # -------------------- Models --------------------
 class KeyValue(BaseModel):
     key: str
@@ -29,6 +40,7 @@ class ValueOnly(BaseModel):
     ttl : int | None = None
 
 class ReplicationRequest(BaseModel):
+    username: str
     op: str
     key: str
     value: str | None = None
@@ -41,21 +53,26 @@ async def lifespan(app: FastAPI):
     create_users_table()
     threading.Thread(
         target=health_monitor,
-        args=(store,),
+        args=(user_stores,),
         daemon=True
     ).start()
     yield
 
+    for username, store in user_stores.items():
+        store.shutdown()
+
 app = FastAPI(title="PyKV Server", lifespan=lifespan)
 
-core = CoreStore(capacity=100)
-store = Persistence(core)
+# core = CoreStore(capacity=100)
+# store = Persistence(core)
 
 app.include_router(auth_router)
 
 # ----------------- Routes -------------------
 @app.post("/kv/", status_code=status.HTTP_201_CREATED)
-async def add(item: KeyValue):          # client sends key & value
+async def add(item: KeyValue, username: str = Depends(get_current_user)):          # client sends key & value
+    store = get_user_store(username)
+
     if not IS_LEADER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -70,7 +87,8 @@ async def add(item: KeyValue):          # client sends key & value
 
 
 @app.get("/kv/{key}", status_code=status.HTTP_200_OK)       
-async def get(key: str):          # lookup key
+async def get(key: str, username: str = Depends(get_current_user)):          # lookup key
+    store = get_user_store(username)
     value = store.get(key)
     if value is None:
         raise HTTPException(
@@ -81,7 +99,8 @@ async def get(key: str):          # lookup key
 
 
 @app.put("/kv/{key}", status_code=status.HTTP_200_OK)
-async def update(key: str, item: ValueOnly):      # Update value
+async def update(key: str, item: ValueOnly, username: str = Depends(get_current_user)):      # Update value
+    store = get_user_store(username)
     if not IS_LEADER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -98,7 +117,8 @@ async def update(key: str, item: ValueOnly):      # Update value
 
 
 @app.delete("/kv/{key}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete(key: str):        # Delete key
+async def delete(key: str, username: str = Depends(get_current_user)):        # Delete key
+    store = get_user_store(username)
     if not IS_LEADER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -115,17 +135,21 @@ async def delete(key: str):        # Delete key
 
 
 @app.get("/kv/", status_code=status.HTTP_200_OK)       
-async def list_keys(prefix: str = None):      # List keys
+async def list_keys(prefix: str = None, username: str = Depends(get_current_user)):      # List keys
+    store = get_user_store(username)
     return {"keys": store.list_keys(prefix)}
 
 @app.get("/kv-items", status_code=status.HTTP_200_OK)
-async def list_key_values():
+async def list_key_values(username: str = Depends(get_current_user)):
+    store = get_user_store(username)
     store.store.purge_expired()
     data = store.dump_all()
     return {"items": data}
 
 @app.get("/stats", status_code=status.HTTP_200_OK)
-def get_stats():
+def get_stats(username: str = Depends(get_current_user)):
+    store = get_user_store(username)
+    core = store.store
     core.purge_expired()
     cache = core.cache
 
@@ -149,6 +173,9 @@ async def internal_replicate(req: ReplicationRequest):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Leader cannot accept replication"
         )
+    
+    store = get_user_store(req.username)
+
     if req.op == "SET":
         store.put(req.key, req.value, req.ttl)
     elif req.op == "UPDATE":
@@ -159,12 +186,13 @@ async def internal_replicate(req: ReplicationRequest):
     return {"status": "replicated"}
 
 @app.post("/internal/resync")
-async def internal_resync(data: dict):
+async def internal_resync(data: dict, username: str):
     """
     Full resync from primary
     """
     if not IS_LEADER:
         return
+    store = get_user_store(username)
     # Clear existing data
     for key in list(store.list_keys()):
         store.delete(key)

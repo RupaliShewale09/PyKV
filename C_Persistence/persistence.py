@@ -13,7 +13,7 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
-DEFAULT_WAL = os.path.join(DATA_DIR, "wal.log")
+# DEFAULT_WAL = os.path.join(DATA_DIR, "wal.log")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,9 +24,9 @@ class Persistence:
     """
     Log every write operation
     """
-    def __init__(self, store, log_file=DEFAULT_WAL, flush_interval=1, max_batch=50):
+    def __init__(self, store, username="default", flush_interval=1, max_batch=50):
         self.store = store
-        self.log_file = log_file
+        self.log_file = os.path.join(DATA_DIR, f"wal_{username}.log")
         self.lock = Lock()
         self.queue = []                  # in-memory WAL buffer
         self.flush_interval = flush_interval
@@ -34,11 +34,11 @@ class Persistence:
         self.stop_event = Event()
 
         log_dir = os.path.dirname(self.log_file)
-        if log_file:
+        if self.log_file:
             os.makedirs(log_dir, exist_ok=True)   # ensure directory eists
         recover(self.store, self.log_file)
 
-        self.worker = Thread(target=self._wal_writer, daemon=True, name="Async-WAL-Writer")
+        self.worker = Thread(target=self._wal_writer, daemon=True, name=f"Async-WAL-Writer-{username}")
         self.worker.start()
 
         start_background_compaction(
@@ -46,7 +46,7 @@ class Persistence:
             lock=self.lock,
             interval=10   
         )
-        logging.info("Persistence layer initialized")
+        logging.info(f"Persistence layer initialized for user: {username}")
 
     # ---------------- WAL enqueue ----------------
     def _enqueue_log(self, op, key, value=None, ttl=None):

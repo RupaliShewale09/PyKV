@@ -3,11 +3,12 @@ from .health import get_healthy_replicas
 from .config import ENABLE_TIMESTAMPS, MAX_RETRIES, IS_LEADER
 
 
-async def replicate_async(op, key, value=None, ttl=None):
+async def replicate_async(username, op, key, value=None, ttl=None):
     if not IS_LEADER:
         return
     
     payload = {
+        "username" : username,
         "op": op,
         "key": key,
         "value": value,

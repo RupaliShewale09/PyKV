@@ -6,7 +6,7 @@ from .resync import resync
 _healthy = set()
 _last_healthy = set()
 
-def health_monitor(store):
+def health_monitor(user_stores):
     global _healthy, _last_healthy
     while True:
         new_healthy = set()
@@ -21,10 +21,11 @@ def health_monitor(store):
         recovered = new_healthy - _last_healthy
         
         for url in recovered:
-            try:
-                resync(store, url)
-            except:
-                continue
+            for username, store_instance in user_stores.items():
+                try:
+                    resync(user_stores, url)
+                except:
+                    continue
 
         _last_healthy = new_healthy
         _healthy = _last_healthy.copy()
