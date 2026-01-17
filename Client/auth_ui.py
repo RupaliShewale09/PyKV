@@ -1,7 +1,8 @@
 import streamlit as st
 import requests
+import os
 
-API_BASE = "http://127.0.0.1:8000"
+API_BASE = os.getenv("LEADER_URL", "http://127.0.0.1:8000")
 
 def parse_pydantic_error(resp):
     try:

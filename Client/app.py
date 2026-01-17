@@ -24,13 +24,17 @@ if not st.session_state["logged_in"]:
 def get_user_params():
     return {"username": st.session_state.get("username", "default")}
 
-LEADER_PORT = int(os.getenv("LEADER_PORT", 8000))
-REPLICA_COUNT = int(os.getenv("REPLICA_COUNT", 2))
+LEADER_URL = os.getenv("LEADER_URL", "http://127.0.0.1:8000")
+raw_replicas = os.getenv("REPLICA_URLS", "")
+if raw_replicas:
+    REPLICA_LIST = [r.strip() for r in raw_replicas.split(",")]
+else:
+    REPLICA_COUNT = int(os.getenv("REPLICA_COUNT", 2))
+    LEADER_PORT = int(os.getenv("LEADER_PORT", 8000))
+    REPLICA_LIST = [f"http://127.0.0.1:{LEADER_PORT + i + 1}" for i in range(REPLICA_COUNT)]
 
-BASES = [f"http://127.0.0.1:{LEADER_PORT}"]
+BASES = [LEADER_URL] + REPLICA_LIST
 
-for i in range(REPLICA_COUNT):
-    BASES.append(f"http://127.0.0.1:{LEADER_PORT + i + 1}")
 
 def get_active_base(write=False):
     for idx, base in enumerate(BASES):
