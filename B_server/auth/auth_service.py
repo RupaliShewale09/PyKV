@@ -1,5 +1,6 @@
-from .auth_db import get_conn
+from .auth_db import get_conn, User
 import bcrypt
+from sqlalchemy.exc import IntegrityError
 
 def hash_password(password):
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -11,40 +12,36 @@ def register_user(username, email, password):
     if len(password) < 8:
         return False, "Password must be at least 8 characters long"
     
+    session = get_conn()
     try:
-        conn = get_conn()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-            (username, email, hash_password(password))
+        new_user = User(
+            username=username,
+            email=email,
+            password=hash_password(password)
         )
-
-        conn.commit()
-        conn.close()
+        session.add(new_user)
+        session.commit()
         return True, "User registered"
-
+    
+    except IntegrityError as e:
+        session.rollback()
+        return False, "Username or email already exists"
+    
     except Exception as e:
-        if "UNIQUE" in str(e):
-            return False, "Username or email already exists"
+        session.rollback()
         return False, "Registration failed"
-
+    
+    finally:
+        session.close()
 
 def login_user(username, password):
-    conn = get_conn()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        "SELECT password FROM users WHERE username=?",
-        (username,)
-    )
-    row = cursor.fetchone()
-    conn.close()
-
-    if not row:
-        return False, "User not found"
-
-    if not verify_password(password, row[0]):
-        return False, "Wrong password"
-
-    return True, "Login success"
+    session = get_conn()
+    try:
+        user = session.query(User).filter(User.username == username).first()
+        if not user:
+            return False, "User not found"
+        if not verify_password(password, user.password):
+            return False, "Wrong password"
+        return True, "Login success"
+    finally:
+        session.close()
