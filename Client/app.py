@@ -35,8 +35,6 @@ def get_active_base(write=False):
             continue
     return None, False
 
-# ---------------- AUTO REFRESH ----------------
-st_autorefresh(interval=2000, limit=None, key="refresh_counter")  # refresh every 2s
 
 BASE, is_leader = get_active_base(write=False)
 if BASE is None:
@@ -59,6 +57,9 @@ if "logged_in" not in st.session_state:
 if not st.session_state["logged_in"]:
     auth_page()  # shows login / signup UI
     st.stop()    # stop rest of dashboard from loading
+
+# ---------------- AUTO REFRESH ----------------
+st_autorefresh(interval=2000, limit=None, key="refresh_counter")  # refresh every 2s
 
 def get_user_params():
     return {"username": st.session_state.get("username", "default")}
