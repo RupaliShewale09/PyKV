@@ -8,15 +8,15 @@ import time
 # import sys
 import os
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from .auth.auth_routes import router as auth_router
+from .auth.auth_db import create_users_table
 
-from PyKV.A_Core.store import CoreStore
-from PyKV.C_Persistence.persistence import Persistence
-from PyKV.D_Replication.replicator import replicate_async
-from PyKV.D_Replication.health import health_monitor, get_healthy_replicas
-from PyKV.D_Replication.config import IS_LEADER
+from A_Core.store import CoreStore
+from C_Persistence.persistence import Persistence
+from D_Replication.replicator import replicate_async
+from D_Replication.health import health_monitor, get_healthy_replicas
+from D_Replication.config import IS_LEADER
 
-from PyKV.B_server.auth.auth_routes import router as auth_router
-from PyKV.B_server.auth.auth_db import create_users_table
 
 user_stores = {}
 
