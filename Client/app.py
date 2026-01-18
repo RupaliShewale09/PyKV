@@ -58,8 +58,6 @@ if not st.session_state["logged_in"]:
     auth_page()  # shows login / signup UI
     st.stop()    # stop rest of dashboard from loading
 
-# ---------------- AUTO REFRESH ----------------
-st_autorefresh(interval=2000, limit=None, key="refresh_counter")  # refresh every 2s
 
 def get_user_params():
     return {"username": st.session_state.get("username", "default")}
@@ -75,6 +73,7 @@ if not is_leader:
 
 # ---------------- SIDEBAR ----------------
 with st.sidebar:
+    st_autorefresh(interval=2000, limit=None, key="refresh_counter")  # refresh every 2s
     st.markdown('<div class="sidebar-title">✦ PyKV Store</div>', unsafe_allow_html=True)
     if is_leader:
         st.markdown('<span style="color: #22c55e; font-weight: bold;">● Leader Active</span>', unsafe_allow_html=True)
