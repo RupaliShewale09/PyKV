@@ -7,7 +7,7 @@ from style import apply_style, draw_metric
 import os
 from auth_ui import auth_page
 
-st.set_page_config(page_title="PyKV ", layout="wide")
+st.set_page_config(page_title="PyKV ", page_icon="🔑", layout="wide")
 apply_style()
 
 if "logged_in" not in st.session_state:
