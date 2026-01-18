@@ -10,19 +10,6 @@ from auth_ui import auth_page
 st.set_page_config(page_title="PyKV ", page_icon="🔑", layout="wide")
 apply_style()
 
-if "logged_in" not in st.session_state:
-    if "user" in st.query_params:
-        st.session_state["logged_in"] = True
-        st.session_state["username"] = st.query_params["user"]
-    else:
-        st.session_state["logged_in"] = False
-
-if not st.session_state["logged_in"]:
-    auth_page()  # shows login / signup UI
-    st.stop()    # stop rest of dashboard from loading
-
-def get_user_params():
-    return {"username": st.session_state.get("username", "default")}
 
 LEADER_URL = os.getenv("LEADER_URL", "http://127.0.0.1:8000")
 raw_replicas = os.getenv("REPLICA_URLS", "")
@@ -61,6 +48,20 @@ if BASE is None:
         </div>
     """, unsafe_allow_html=True)
     st.stop()
+
+if "logged_in" not in st.session_state:
+    if "user" in st.query_params:
+        st.session_state["logged_in"] = True
+        st.session_state["username"] = st.query_params["user"]
+    else:
+        st.session_state["logged_in"] = False
+
+if not st.session_state["logged_in"]:
+    auth_page()  # shows login / signup UI
+    st.stop()    # stop rest of dashboard from loading
+
+def get_user_params():
+    return {"username": st.session_state.get("username", "default")}
 
 if not is_leader:
     st.markdown(f"""
