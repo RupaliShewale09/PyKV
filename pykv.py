@@ -29,14 +29,14 @@ def start_server(role, port, leader_url=None):
 
     print(f"🚀 Starting {role} on port {port}")
     start_process(
-        [sys.executable, "-m", "PyKV.B_server.server"],
+        [sys.executable, "-m", "B_server.server"],
         env=env
     )
 
 def start_streamlit():
     print("🎨 Starting Streamlit UI")
     start_process(
-        ["streamlit", "run", "PyKV/Client/app.py"]
+        ["streamlit", "run", "Client/app.py"]
     )
 
 
@@ -45,7 +45,7 @@ def start_cli():
     env = os.environ.copy()
 
     # Windows: open new cmd window and run CLI (path without extra quotes)
-    cmd = "start cmd /k python -m PyKV.Client.cli"
+    cmd = "start cmd /k python -m .Client.cli"
     start_process(cmd, env=env, shell=True)
 
 

@@ -27,6 +27,3 @@ def get_conn():
 def create_users_table():
     Base.metadata.create_all(bind=engine)
 
-if __name__ == "__main__":
-    create_users_table()
-    print("Connection Successful!")

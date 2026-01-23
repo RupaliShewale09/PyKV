@@ -22,7 +22,7 @@ user_stores = {}
 
 def get_user_store(username: str):
     if username not in user_stores:
-        user_core = CoreStore(capacity=100)
+        user_core = CoreStore(capacity=10)
         user_stores[username] = Persistence(user_core, username=username)
     return user_stores[username]
 
@@ -82,7 +82,7 @@ async def add(item: KeyValue, username: str = Depends(get_current_user)):       
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Key already exists")
-    await replicate_async("SET", item.key, item.value, item.ttl)
+    await replicate_async(username, "SET", item.key, item.value, item.ttl)
     return {"message": "Key added"}
 
 
@@ -112,7 +112,7 @@ async def update(key: str, item: ValueOnly, username: str = Depends(get_current_
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Key not found"
         )
-    await replicate_async("UPDATE", key, item.value, item.ttl)
+    await replicate_async(username, "UPDATE", key, item.value, item.ttl)
     return {"message": "Key updated"}
 
 
@@ -130,7 +130,7 @@ async def delete(key: str, username: str = Depends(get_current_user)):        # 
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Key not found"
         )
-    await replicate_async("DELETE", key)
+    await replicate_async(username, "DELETE", key)
     return 
 
 

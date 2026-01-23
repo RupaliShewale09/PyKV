@@ -9,8 +9,6 @@ def verify_password(password, hashed):
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 def register_user(username, email, password):
-    if len(password) < 8:
-        return False, "Password must be at least 8 characters long"
     
     session = get_conn()
     try:
