@@ -65,7 +65,7 @@ def get_user_params():
 if not is_leader:
     st.markdown(f"""
         <div style="background-color: #fef2f2; color: #991b1b; padding: 15px; border-radius: 10px; 
-                    border: 1px solid #f87171; text-align: center; margin-bottom: 50px; margin-top:-50px; font-weight: bold;">
+                    border: 1px solid #f87171; text-align: center; margin-bottom: 50px; margin-top:-20px; font-weight: bold;">
             ⚠️ LEADER DOWN: Operating in READ-ONLY mode (Replica: {BASE})
         </div>
     """, unsafe_allow_html=True)
@@ -127,7 +127,7 @@ with st.sidebar:
 
 # ---------------- DASHBOARD ----------------
 if selected == "Dashboard":
-    st.markdown("<h1 style='text-align:center;color:#0e7c86;margin-top:-3rem;'>📊 PyKV Dashboard</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;color:#0e7c86;margin-top:-5rem;'>📊 PyKV Dashboard</h1>", unsafe_allow_html=True)
 
     try:
         stats = requests.get(f"{BASE}/stats", params=get_user_params(), timeout=1).json()
