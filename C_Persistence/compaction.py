@@ -48,16 +48,13 @@ def compact_log(log_file, lock):
                     }) + "\n")
             temp_name = tmp.name
 
-        # Handle Windows permission errors
         try:
             os.replace(temp_name, log_file)
         except PermissionError:
-            # On Windows, if replace fails, try remove and rename
             try:
                 os.remove(log_file)
                 os.rename(temp_name, log_file)
             except Exception:
-                # If still fails, clean up temp file
                 try:
                     os.remove(temp_name)
                 except Exception:

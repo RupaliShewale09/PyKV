@@ -23,7 +23,5 @@ def recover(store, log_file):
 
             if op == "SET":
                 store.put(key, value, ttl)
-            elif op == "UPDATE":
-                store.update(key, value, ttl)
             elif op == "DELETE":
                 store.delete(key)
