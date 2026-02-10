@@ -31,5 +31,5 @@ def get_conn():
     return SessionLocal()
 
 def create_users_table():
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine, checkfirst=True)
 

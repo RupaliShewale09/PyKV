@@ -88,25 +88,25 @@ class Persistence:
             batch = self.queue[:self.max_batch]
             self.queue = self.queue[self.max_batch:]
 
-        # Write batch to WAL safely
-        try:
-            with open(self.log_file, "a", buffering=1) as f:
-                for entry in batch:
-                    f.write(json.dumps(entry) + "\n")
-                f.flush()
-                os.fsync(f.fileno())
-        except Exception as e:
-                    logging.error(
-                        "WAL flush failed. Re-queueing batch. Error: %s", e,
-                        exc_info=True
-                    )
+            # Write batch to WAL safely
+            try:
+                with open(self.log_file, "a", buffering=1) as f:
+                    for entry in batch:
+                        f.write(json.dumps(entry) + "\n")
+                    f.flush()
+                    os.fsync(f.fileno())
+            except Exception as e:
+                logging.error(
+                    "WAL flush failed. Re-queueing batch. Error: %s", e,
+                    exc_info=True
+                )
 
-                    # Re-queue failed batch at the front (preserve order)
-                    with self.lock:
-                        self.queue = batch + self.queue
+                # Re-queue failed batch at the front (preserve order)
+                with self.lock:
+                    self.queue = batch + self.queue
 
-                    # Prevent busy spinning on persistent failure
-                    time.sleep(1)
+                # Prevent busy spinning on persistent failure
+                time.sleep(1)
 
     # ---------------- Write operations ----------------
     def put(self, key, value, ttl=None):
