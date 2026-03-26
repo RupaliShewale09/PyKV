@@ -122,10 +122,10 @@ Tests were conducted with 20 concurrent threads and 5,000 total requests.
 
 | Metric | SET Operation | GET Operation |
 |------|---------------|---------------|
-| Throughput | 1,417.82 ops/sec | 1,607.57 ops/sec |
-| Avg Latency | 14.11 ms | 12.44 ms |
+| Throughput | 302.62 ops/sec | 397.12 ops/sec |
+| Avg Latency | 3.30 ms | 2.52 ms |
 | Success Rate | 100% | ~20%* |
-| Total Time | 3.53 seconds | 3.11 seconds |
+| Total Time | 16.53 seconds | 12.59 seconds |
 
 \* Note: Lower GET success rate is expected due to the cache capacity (1,000) being smaller than the total inserted keys, triggering LRU eviction.
  
